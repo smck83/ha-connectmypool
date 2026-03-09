@@ -3,7 +3,7 @@
   "name": "AstralPool ConnectMyPool",
   "codeowners": [],
   "config_flow": true,
-  "documentation": "https://github.com/smck83/ha-connectmypool/connectmypool",
+  "documentation": "https://github.com/smck83/ha-connectmypool",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/smck83/ha-connectmypool/issues",
   "requirements": ["aiohttp>=3.8.0"],
