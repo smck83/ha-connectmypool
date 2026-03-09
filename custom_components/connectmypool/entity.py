@@ -31,6 +31,6 @@ class ConnectMyPoolEntity(CoordinatorEntity[ConnectMyPoolCoordinator]):
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
             name=f"AstralPool {self.coordinator.pool_name}",
-            manufacturer="AstralPool",
-            model="ConnectMyPool",
+            manufacturer="AstralPool (Unofficial)",
+            model="ConnectMyPool (Community Integration)",
         )
