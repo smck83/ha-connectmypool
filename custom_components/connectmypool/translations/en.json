@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to AstralPool ConnectMyPool",
+        "description": "Enter your Pool API Code from the ConnectMyPool Home Automation settings page.",
+        "data": {
+          "pool_api_code": "Pool API Code",
+          "pool_name": "Pool Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the ConnectMyPool API. Please check your network connection.",
+      "invalid_auth": "Invalid Pool API Code. Please check your code and try again.",
+      "api_not_enabled": "API access has not been enabled for this pool. Please request access via the ConnectMyPool website.",
+      "pool_not_connected": "Your pool system is not currently connected to ConnectMyPool.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This pool is already configured."
+    }
+  }
+}
