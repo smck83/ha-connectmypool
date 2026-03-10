@@ -37,7 +37,7 @@ You need a **Pool API Code** from AstralPool:
 6. Restart Home Assistant
 7. Go to **Settings → Devices & Services → Add Integration → ConnectMyPool**
 8. Enter your Pool API Code and a friendly name for your pool
-9. Rest Home Assistant
+9. Restart Home Assistant
 
 ## API Rate Limiting
 
