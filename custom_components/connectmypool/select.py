@@ -10,7 +10,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    ACTION_CYCLE_CHANNEL,
     ACTION_SET_FAVOURITE,
     ACTION_SET_HEAT_COOL,
     ACTION_SET_LIGHT_COLOR,
@@ -155,7 +154,7 @@ class HeatCoolSelect(ConnectMyPoolEntity, SelectEntity):
 # Channel
 # ---------------------------------------------------------------------------
 class ChannelModeSelect(ConnectMyPoolEntity, SelectEntity):
-    """Select a channel mode (cycles through modes via API)."""
+    """Select a channel mode (the API steps through modes one at a time)."""
 
     _attr_icon = "mdi:pump"
     _attr_options = list(CHANNEL_MODES.values())
@@ -184,12 +183,10 @@ class ChannelModeSelect(ConnectMyPoolEntity, SelectEntity):
         return None
 
     async def async_select_option(self, option: str) -> None:
-        # Channel API uses cycle action — we cycle until we reach desired mode.
-        # For simplicity, just send the cycle action once. The user may need to
-        # tap multiple times for multi-step cycling.
-        await self.coordinator.async_send_action_and_refresh(
-            ACTION_CYCLE_CHANNEL, self._channel_number
-        )
+        reverse = {v: k for k, v in CHANNEL_MODES.items()}
+        value = reverse.get(option)
+        if value is not None:
+            await self.coordinator.async_set_channel_mode(self._channel_number, value)
 
 
 # ---------------------------------------------------------------------------

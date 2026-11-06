@@ -15,6 +15,7 @@
       "invalid_auth": "Invalid Pool API Code. Please check your code and try again.",
       "api_not_enabled": "API access has not been enabled for this pool. Please request access via the ConnectMyPool website.",
       "pool_not_connected": "Your pool system is not currently connected to ConnectMyPool.",
+      "throttled": "ConnectMyPool only answers once every 60 seconds. Please wait a minute and try again.",
       "unknown": "An unexpected error occurred."
     },
     "abort": {

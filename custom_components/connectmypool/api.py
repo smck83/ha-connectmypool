@@ -7,6 +7,8 @@ from typing import Any
 
 import aiohttp
 
+from homeassistant.exceptions import HomeAssistantError
+
 from .const import (
     API_POOL_ACTION,
     API_POOL_ACTION_STATUS,
@@ -22,7 +24,7 @@ HEADERS = {
 }
 
 
-class ConnectMyPoolApiError(Exception):
+class ConnectMyPoolApiError(HomeAssistantError):
     """Base exception for API errors."""
 
     def __init__(self, failure_code: int, failure_description: str) -> None:
@@ -53,7 +55,7 @@ class ConnectMyPoolApi:
                 url, json=payload, headers=HEADERS, timeout=aiohttp.ClientTimeout(total=30)
             ) as resp:
                 data = await resp.json()
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
             raise ConnectMyPoolApiError(0, f"Connection error: {err}") from err
 
         if "failure_code" in data:
@@ -109,8 +111,3 @@ class ConnectMyPoolApi:
                 "action_number": action_number,
             },
         )
-
-    async def validate(self) -> bool:
-        """Validate the API code by fetching config. Returns True on success."""
-        await self.get_config()
-        return True

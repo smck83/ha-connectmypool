@@ -11,7 +11,7 @@ from homeassistant import config_entries
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ConnectMyPoolApi, ConnectMyPoolApiError
-from .const import CONF_POOL_API_CODE, CONF_POOL_NAME, DOMAIN
+from .const import CONF_POOL_API_CODE, CONF_POOL_CONFIG, CONF_POOL_NAME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,13 +46,15 @@ class ConnectMyPoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             api = ConnectMyPoolApi(session, api_code)
 
             try:
-                await api.validate()
+                pool_config = await api.get_config()
             except ConnectMyPoolApiError as err:
                 _LOGGER.error("Validation failed: %s", err)
                 if err.failure_code in (2, 3, 5):
                     errors["base"] = "invalid_auth"
                 elif err.failure_code == 4:
                     errors["base"] = "api_not_enabled"
+                elif err.failure_code == 6:
+                    errors["base"] = "throttled"
                 elif err.failure_code == 7:
                     errors["base"] = "pool_not_connected"
                 else:
@@ -66,6 +68,7 @@ class ConnectMyPoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_POOL_API_CODE: api_code,
                         CONF_POOL_NAME: pool_name,
+                        CONF_POOL_CONFIG: pool_config,
                     },
                 )
 

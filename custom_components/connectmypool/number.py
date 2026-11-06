@@ -7,17 +7,36 @@ from homeassistant.components.number import NumberDeviceClass, NumberEntity, Num
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     ACTION_SET_HEATER_TEMP,
     ACTION_SET_SOLAR_TEMP,
     DOMAIN,
+    POOL_MODE,
+    POOL_SPA_MODES,
+    SPA_MODE,
 )
 from .coordinator import ConnectMyPoolCoordinator
 from .entity import ConnectMyPoolEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _ensure_pool_spa_mode(coordinator: ConnectMyPoolCoordinator, required_mode: int) -> None:
+    """Refuse a change the API would apply to the other mode's set temperature.
+
+    On a combined system the API always writes the set temperature of the
+    active mode, whichever entity the change came from.
+    """
+    if not coordinator.pool_config.get("pool_spa_selection_enabled"):
+        return
+    current_mode = (coordinator.data or {}).get("pool_spa_selection")
+    if current_mode is not None and current_mode != required_mode:
+        raise HomeAssistantError(
+            f"Switch to {POOL_SPA_MODES[required_mode]} mode to change this temperature"
+        )
 
 
 async def async_setup_entry(
@@ -80,6 +99,7 @@ class HeaterSetTempNumber(ConnectMyPoolEntity, NumberEntity):
         return None
 
     async def async_set_native_value(self, value: float) -> None:
+        _ensure_pool_spa_mode(self.coordinator, POOL_MODE)
         await self.coordinator.async_send_action_and_refresh(
             ACTION_SET_HEATER_TEMP, self._heater_number, int(value)
         )
@@ -119,7 +139,7 @@ class HeaterSpaSetTempNumber(ConnectMyPoolEntity, NumberEntity):
         return None
 
     async def async_set_native_value(self, value: float) -> None:
-        # Note: the API sets the appropriate temp based on current pool/spa mode
+        _ensure_pool_spa_mode(self.coordinator, SPA_MODE)
         await self.coordinator.async_send_action_and_refresh(
             ACTION_SET_HEATER_TEMP, self._heater_number, int(value)
         )

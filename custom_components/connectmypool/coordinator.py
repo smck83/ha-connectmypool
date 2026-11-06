@@ -1,15 +1,23 @@
 """DataUpdateCoordinator for ConnectMyPool."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import ConnectMyPoolApi, ConnectMyPoolApiError, ConnectMyPoolThrottleError
-from .const import DEFAULT_SCAN_INTERVAL
+from .const import (
+    ACTION_CYCLE_CHANNEL,
+    CHANNEL_MODES,
+    DEFAULT_SCAN_INTERVAL,
+    EXECUTION_FAILED,
+    EXECUTION_TIMED_OUT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,6 +52,7 @@ class ConnectMyPoolCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api = api
         self.pool_config = config
         self.pool_name = pool_name
+        self._channel_lock = asyncio.Lock()
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch the latest pool status."""
@@ -71,7 +80,48 @@ class ConnectMyPoolCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.api.pool_action(action_code, device_number, value)
 
         # Small delay so the controller can process the command
-        import asyncio
         await asyncio.sleep(ACTION_REFRESH_DELAY)
 
         await self.async_request_refresh()
+
+    def _channel_mode(self, channel_number: int) -> int | None:
+        """Return the last known mode of a channel."""
+        for channel in (self.data or {}).get("channels", []):
+            if channel.get("channel_number") == channel_number:
+                return channel.get("mode")
+        return None
+
+    async def async_set_channel_mode(self, channel_number: int, target_mode: int) -> None:
+        """Cycle a channel until it reaches the target mode.
+
+        The API can only step a channel to its next mode, and the modes on
+        offer depend on the device.  If the channel comes back to a mode it
+        has already passed through then the target is not one of its modes.
+        """
+        async with self._channel_lock:
+            start_mode = self._channel_mode(channel_number)
+            if start_mode == target_mode:
+                return
+
+            seen = {start_mode}
+            while True:
+                result = await self.api.pool_action(
+                    ACTION_CYCLE_CHANNEL, channel_number, wait_for_execution=True
+                )
+                if result.get("execution_status") in (EXECUTION_FAILED, EXECUTION_TIMED_OUT):
+                    raise HomeAssistantError(
+                        f"The pool did not carry out the change to channel {channel_number}"
+                    )
+
+                await asyncio.sleep(ACTION_REFRESH_DELAY)
+                self.async_set_updated_data(await self.api.get_status())
+
+                mode = self._channel_mode(channel_number)
+                if mode == target_mode:
+                    return
+                if mode in seen:
+                    raise HomeAssistantError(
+                        f"Channel {channel_number} does not have a "
+                        f"{CHANNEL_MODES[target_mode]} mode"
+                    )
+                seen.add(mode)

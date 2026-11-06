@@ -4,6 +4,7 @@ DOMAIN = "connectmypool"
 
 CONF_POOL_API_CODE = "pool_api_code"
 CONF_POOL_NAME = "pool_name"
+CONF_POOL_CONFIG = "pool_config"
 
 API_BASE_URL = "https://www.connectmypool.com.au/api"
 API_POOL_CONFIG = f"{API_BASE_URL}/poolconfig"
@@ -27,8 +28,18 @@ ACTION_SET_SOLAR_TEMP = 10
 ACTION_LIGHT_SYNC = 11
 ACTION_SET_HEAT_COOL = 12
 
+# API failure codes that retrying cannot fix
+# (invalid pool system, invalid API code, API not enabled, invalid API key)
+PERMANENT_FAILURE_CODES = (2, 3, 4, 5)
+
+# Action execution status
+EXECUTION_FAILED = 2
+EXECUTION_TIMED_OUT = 3
+
 # Enumerations
-POOL_SPA_MODES = {0: "Spa", 1: "Pool"}
+SPA_MODE = 0
+POOL_MODE = 1
+POOL_SPA_MODES = {SPA_MODE: "Spa", POOL_MODE: "Pool"}
 HEAT_COOL_MODES = {0: "Cooling", 1: "Heating"}
 HEATER_MODES = {0: "Off", 1: "On"}
 SOLAR_MODES = {0: "Off", 1: "Auto", 2: "On"}
