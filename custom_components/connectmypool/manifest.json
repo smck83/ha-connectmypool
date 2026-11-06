@@ -1,6 +1,7 @@
 {
   "domain": "connectmypool",
   "name": "AstralPool ConnectMyPool",
+  "categories": ["water.pools_spas"],
   "codeowners": ["@smck83"],
   "config_flow": true,
   "documentation": "https://github.com/smck83/ha-connectmypool",
