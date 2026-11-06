@@ -23,6 +23,9 @@ HEADERS = {
     "User-Agent": "HomeAssistant-ConnectMyPool/1.0",
 }
 
+REQUEST_TIMEOUT = 30  # seconds
+ACTION_WAIT_TIMEOUT = 60  # seconds, for actions that wait for the pool to respond
+
 
 class ConnectMyPoolApiError(HomeAssistantError):
     """Base exception for API errors."""
@@ -48,11 +51,13 @@ class ConnectMyPoolApi:
         self._session = session
         self._pool_api_code = pool_api_code
 
-    async def _post(self, url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _post(
+        self, url: str, payload: dict[str, Any], timeout: int = REQUEST_TIMEOUT
+    ) -> dict[str, Any]:
         """Make a POST request and return the JSON response."""
         try:
             async with self._session.post(
-                url, json=payload, headers=HEADERS, timeout=aiohttp.ClientTimeout(total=30)
+                url, json=payload, headers=HEADERS, timeout=aiohttp.ClientTimeout(total=timeout)
             ) as resp:
                 data = await resp.json()
         except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
@@ -100,7 +105,8 @@ class ConnectMyPoolApi:
             "temperature_scale": 0,
             "wait_for_execution": wait_for_execution,
         }
-        return await self._post(API_POOL_ACTION, payload)
+        timeout = ACTION_WAIT_TIMEOUT if wait_for_execution else REQUEST_TIMEOUT
+        return await self._post(API_POOL_ACTION, payload, timeout)
 
     async def get_action_status(self, action_number: int) -> dict[str, Any]:
         """Check execution status of a previously sent action."""

@@ -21,8 +21,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Short delay after an action before we fetch status, giving the pool
-# controller a moment to process the command.
+# Short delay after the pool confirms an action before we fetch status,
+# giving its new state a moment to reach ConnectMyPool.
 ACTION_REFRESH_DELAY = 2  # seconds
 
 
@@ -66,20 +66,32 @@ class ConnectMyPoolCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except ConnectMyPoolApiError as err:
             raise UpdateFailed(f"Error communicating with ConnectMyPool: {err}") from err
 
+    async def _async_send_action(
+        self,
+        action_code: int,
+        device_number: int = 0,
+        value: str | int = "",
+    ) -> None:
+        """Send a pool action and wait for the pool to carry it out."""
+        result = await self.api.pool_action(
+            action_code, device_number, value, wait_for_execution=True
+        )
+        if result.get("execution_status") in (EXECUTION_FAILED, EXECUTION_TIMED_OUT):
+            raise HomeAssistantError("The pool did not carry out the change")
+
     async def async_send_action_and_refresh(
         self,
         action_code: int,
         device_number: int = 0,
         value: str | int = "",
     ) -> None:
-        """Send a pool action then immediately refresh status.
+        """Send a pool action, wait for it to finish, then refresh status.
 
         Because the action lifts the 60-second throttle for 5 minutes,
         the subsequent status fetch will succeed straight away.
         """
-        await self.api.pool_action(action_code, device_number, value)
+        await self._async_send_action(action_code, device_number, value)
 
-        # Small delay so the controller can process the command
         await asyncio.sleep(ACTION_REFRESH_DELAY)
 
         await self.async_request_refresh()
@@ -105,13 +117,7 @@ class ConnectMyPoolCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             seen = {start_mode}
             while True:
-                result = await self.api.pool_action(
-                    ACTION_CYCLE_CHANNEL, channel_number, wait_for_execution=True
-                )
-                if result.get("execution_status") in (EXECUTION_FAILED, EXECUTION_TIMED_OUT):
-                    raise HomeAssistantError(
-                        f"The pool did not carry out the change to channel {channel_number}"
-                    )
+                await self._async_send_action(ACTION_CYCLE_CHANNEL, channel_number)
 
                 await asyncio.sleep(ACTION_REFRESH_DELAY)
                 self.async_set_updated_data(await self.api.get_status())

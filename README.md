@@ -42,7 +42,7 @@ This button works with the Marketplace (Home Assistant 2026.11 and later) and wi
 
 The ConnectMyPool API enforces a **60-second throttle** on status and config requests. This integration polls every **61 seconds** to stay safely outside that window.
 
-When you make a change (toggle a light, adjust a temperature, switch a mode, etc.) the integration immediately requests a status refresh. Because sending an action lifts the API throttle for 5 minutes, this follow-up poll succeeds straight away — so the UI updates within a couple of seconds of any change rather than waiting for the next scheduled poll.
+When you make a change (toggle a light, adjust a temperature, switch a mode, etc.) the integration waits for the pool to confirm it, then requests a status refresh. Sending an action lifts the API throttle for 5 minutes, so this follow-up poll succeeds straight away and the UI updates soon after the pool responds, rather than at the next scheduled poll. If the pool fails or times out, Home Assistant shows an error.
 
 ## How Some Controls Behave
 
